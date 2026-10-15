@@ -14,7 +14,7 @@ class Data:
     def __init__(self) -> None:
 
         self.__file_path = (
-            Path.cwd() / ".." / "data" / "strasbourg_entzheim.csv"
+            Path(__file__).parent / ".." / "data" / "strasbourg_entzheim.csv"
         ).resolve()
 
         self.__data = np.genfromtxt(
@@ -64,12 +64,10 @@ class Data:
             end (int, optional): Jours de fin. Defaults to 356.
         """
 
-        jours: int = abs(start - end)
-
         plt.figure(figsize=(10, 4))
 
         plt.plot(
-            self.tmax[:jours],
+            self.tmax[start:end],
             label="Tmax (Max)",
             color="tab:red",
             linestyle="--",
@@ -77,14 +75,14 @@ class Data:
         )
 
         plt.plot(
-            self.tavg[:jours],
+            self.tavg[start:end],
             label="Tavg (Moyenne)",
             color="black",
             linewidth=1.5,
         )
 
         plt.plot(
-            self.tmin[:jours],
+            self.tmin[start:end],
             label="Tmin (Min)",
             color="tab:blue",
             linestyle="--",
@@ -111,17 +109,15 @@ class Data:
             end (int, optional): Jours de fin. Defaults to 356.
         """
 
-        jours: int = abs(start - end)
-
         plt.figure(figsize=(10, 4))
 
         plt.plot(
-            self.snow[:jours],
+            self.snow[start:end],
             label="Snow",
             color="black",
         )
 
-        plt.title(f"Signal journalier sur {jours} jours")
+        plt.title(f"Signal journalier sur {end - start} jours")
 
         plt.xlabel("Échantillons (jours)")
         plt.ylabel("mm")
@@ -140,17 +136,16 @@ class Data:
             start (int, optional): Jours de début. Defaults to 0.
             end (int, optional): Jours de fin. Defaults to 356.
         """
-        jours: int = abs(start - end)
 
         plt.figure(figsize=(10, 4))
 
         plt.plot(
-            self.prcp[:jours],
+            self.prcp[start:end],
             label="Précipitation",
             color="black",
         )
 
-        plt.title(f"Signal journalier sur {jours} jours")
+        plt.title(f"Signal journalier sur {end - start} jours")
 
         plt.xlabel("Échantillons (jours)")
         plt.ylabel("mm")
@@ -169,17 +164,16 @@ class Data:
             start (int, optional): Jours de début. Defaults to 0.
             end (int, optional): Jours de fin. Defaults to 356.
         """
-        jours: int = abs(start - end)
 
         plt.figure(figsize=(10, 4))
 
         plt.plot(
-            self.wdir[:jours],
+            self.wdir[start:end],
             label="Précipitation",
             color="black",
         )
 
-        plt.title(f"Signal journalier sur {jours} jours")
+        plt.title(f"Signal journalier sur {end - start} jours")
 
         plt.xlabel("Échantillons (jours)")
         plt.ylabel("")
@@ -198,23 +192,22 @@ class Data:
             start (int, optional): Jours de début. Defaults to 0.
             end (int, optional): Jours de fin. Defaults to 356.
         """
-        jours: int = abs(start - end)
 
         plt.figure(figsize=(10, 4))
 
         plt.plot(
-            self.wspd[:jours],
+            self.wspd[start:end],
             label="Wspd",
             color="black",
         )
 
         plt.plot(
-            self.wpgt[:jours],
+            self.wpgt[start:end],
             label="Wpgt",
             color="tab:blue",
         )
 
-        plt.title(f"Signal journalier sur {jours} jours")
+        plt.title(f"Signal journalier sur {end - start} jours")
 
         plt.xlabel("Échantillons (jours)")
         plt.ylabel("km/h")
@@ -233,17 +226,16 @@ class Data:
             start (int, optional): Jours de début. Defaults to 0.
             end (int, optional): Jours de fin. Defaults to 356.
         """
-        jours: int = abs(start - end)
 
         plt.figure(figsize=(10, 4))
 
         plt.plot(
-            self.pres[:jours],
+            self.pres[start:end],
             label="Précipitation",
             color="black",
         )
 
-        plt.title(f"Signal journalier sur {jours} jours")
+        plt.title(f"Signal journalier sur {end - start} jours")
 
         plt.xlabel("Échantillons (jours)")
         plt.ylabel("hPa")
@@ -262,17 +254,16 @@ class Data:
             start (int, optional): Jours de début. Defaults to 0.
             end (int, optional): Jours de fin. Defaults to 356.
         """
-        jours: int = abs(start - end)
 
         plt.figure(figsize=(10, 4))
 
         plt.plot(
-            self.tsun[:jours],
+            self.tsun[start:end],
             label="Précipitation",
             color="black",
         )
 
-        plt.title(f"Signal journalier sur {jours} jours")
+        plt.title(f"Signal journalier sur {end - start} jours")
 
         plt.xlabel("Échantillons (jours)")
         plt.ylabel("minutes")
