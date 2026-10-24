@@ -276,4 +276,8 @@ class Data:
 
 
 # %%
-test = Data()
+Signaux = Data()
+
+Signaux.plot_temp(0, 27010)
+Signaux.plot_temp(0, 3650)
+Signaux.plot_temp()
