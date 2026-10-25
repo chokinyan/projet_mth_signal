@@ -278,6 +278,11 @@ class Data:
 # %%
 Signaux = Data()
 
-Signaux.plot_temp(0, 27010)
-Signaux.plot_temp(0, 3650)
-Signaux.plot_temp()
+Signaux.plot_precipitation(0, 27010)
+Signaux.plot_temps_soleil(0, 27010)
+Signaux.plot_precipitation(0, 3650)
+Signaux.plot_temps_soleil(0, 3650)
+Signaux.plot_precipitation(23360, 27010)
+Signaux.plot_temps_soleil(23360, 27010)
+Signaux.plot_precipitation()
+Signaux.plot_temps_soleil()
