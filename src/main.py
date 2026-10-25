@@ -55,6 +55,13 @@ class Data:
         # durée d’ensoleillement (en minutes)
         self.tsun = self.__data[:, 9]
 
+    def calculer_moyenne_mediane(self, data):
+        """Calcule et renvoie la moyenne et la médiane d'un tableau de données."""
+        moyenne = np.nanmean(data)
+        mediane = np.nanmedian(data)
+
+        return moyenne, mediane
+
     def plot_temp(self, start: int = 0, end: int = 356):
         """
         Crée les plots pour les échantillons des températures
@@ -278,11 +285,63 @@ class Data:
 # %%
 Signaux = Data()
 
+
+
+
+####################
+## PRECIPITATIONS ##
+####################
+
+
+print("// PRECIPITATIONS //")
+
+## periode complete
 Signaux.plot_precipitation(0, 27010)
-Signaux.plot_temps_soleil(0, 27010)
+
+# sur dix ans : 1950 - 1960
 Signaux.plot_precipitation(0, 3650)
-Signaux.plot_temps_soleil(0, 3650)
+
+# sur dix ans : 2014 - 2024
 Signaux.plot_precipitation(23360, 27010)
-Signaux.plot_temps_soleil(23360, 27010)
+
+# sur un an : 1950 
 Signaux.plot_precipitation()
+
+moy_prcp_tot1, med_prcp_tot1 = Signaux.calculer_moyenne_mediane(Signaux.tavg[0:3650])
+
+print("moyenne des précipitations de 1950 à 1960 : ", moy_prcp_tot1," mm")
+print("médiane des précipitations de 1950 à 1960 : ", med_prcp_tot1,"mm")
+
+moy_prcp_tot2, med_prcp_tot2 = Signaux.calculer_moyenne_mediane(Signaux.tavg[23360:27010])
+
+print("moyenne des précipitations de 2014 à 2024 : ", moy_prcp_tot2," mm")
+print("médiane des précipitations de 2014 à 2024 : ", med_prcp_tot2," mm")
+
+##########################
+## DUREE ENSOLEILLEMENT ##
+##########################
+
+print("// ENSOLEILLEMENT //")
+
+## periode complete
+Signaux.plot_temps_soleil(0, 27010)
+
+# sur dix ans : 1950 - 1960
+Signaux.plot_temps_soleil(0, 3650)
+
+# sur dix ans : 2014 - 2024
+Signaux.plot_temps_soleil(23360, 27010)
+
+# sur un an : 1950 
 Signaux.plot_temps_soleil()
+
+
+moy_sun_tot1, med_sun_tot1 = Signaux.calculer_moyenne_mediane(Signaux.tavg[0:3650])
+
+print("moyenne de la durée d'ensoleillement de 1950 à 1960 : ", moy_prcp_tot1," mm")
+print("médiane de la durée d'ensoleillement de 1950 à 1960 : ", med_prcp_tot1,"mm")
+
+moy_sun_tot2, med_sun_tot2 = Signaux.calculer_moyenne_mediane(Signaux.tavg[23360:27010])
+
+print("moyenne de la durée d'ensoleillement de 2014 à 2024 : ", moy_prcp_tot2," min")
+print("médiane de la durée d'ensoleillement de 2014 à 2024 : ", med_prcp_tot2," min")
