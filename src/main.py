@@ -22,7 +22,7 @@ class Data:
             delimiter=",",
             skip_header=1,
             usecols=range(1, 11),
-            filling_values=0,
+            filling_values=np.nan,
         )
 
         # température moyenne
@@ -48,6 +48,64 @@ class Data:
 
     def calculer_moyenne_mediane(self, data):
         return np.nanmean(data), np.nanmedian(data)
+
+    def fast_fourier(self, signal):
+        taille = len(signal)
+
+        fourier = np.fft.rfft(signal)
+        frequences = np.fft.rfftfreq(taille, 1)
+        amplitudes = np.abs(fourier) * 2 / taille
+
+        # j'enlève la valeure 0, car quand elle est là on a des valeures faussées
+        frequences = frequences[1:]
+        amplitudes = amplitudes[1:]
+
+        # on prend les idices, on les trie et on prend les 100 plus grands, nos fréquences ce seront les100 indices correspondants
+        indices = np.arange(1, len(frequences))
+        indices_max = indices[np.argsort(amplitudes[indices])[-100:]]
+
+        frequences_max = frequences[indices_max]
+        amplitudes_max = amplitudes[indices_max]
+        phases_max = np.angle(fourier[indices_max])
+
+        # ça rajoute un peu d'espace car sinon c'est illisible
+        masque = frequences <= 0.02
+
+
+        plt.figure(figsize=(10, 4))
+
+        plt.plot(frequences[masque], amplitudes[masque])
+
+        plt.xlabel("Fréquence")
+        plt.ylabel("Amplitude")
+        plt.title("Spectre de Fourier de la température moyenne")
+
+        plt.grid(True, alpha=0.4)
+        plt.tight_layout()
+        plt.show()
+
+        return frequences_max, amplitudes_max, phases_max
+
+    def reconstruction(self, fmax, amax, signal, phase):
+        t = np.arange(len(signal))
+        moyenne = np.mean(signal)
+
+        reconstruction = moyenne
+
+        for f, a, p in zip(fmax, amax, phase):
+            reconstruction += a * np.cos(2 * np.pi * f * t + p)
+
+        plt.figure(figsize=(12, 5))
+        plt.plot(t, signal, label="Signal original", alpha=0.6)
+        plt.plot(t, reconstruction, label="Reconstruction de Fourier", color="red")
+
+        plt.xlabel("Jours")
+        plt.ylabel("Température (°C)")
+        plt.title("Reconstruction de la température moyenne")
+        plt.legend()
+        plt.grid(True, alpha=0.4)
+        plt.tight_layout()
+        plt.show()
 
     def afficher_stats(self, data, nom, unite, periode, start, end):
         # Affiche moyenne et médiane d'une variable sur une période.
@@ -284,7 +342,7 @@ variables = {
     # "ENSOLEILLEMENT": (Signaux.plot_temps_soleil, Signaux.tsun, "min"),
     # "NEIGE": (Signaux.plot_snow, Signaux.snow, "mm"),
     # "VENT": (Signaux.plot_wind, Signaux.wspd, "km/h"),
-    "PRESSION": (Signaux.plot_pressure, Signaux.pres, "hPa"),
+    # "PRESSION": (Signaux.plot_pressure, Signaux.pres, "hPa"),
 }
 
 for nom, (fonction, donnees, unite) in variables.items():
@@ -294,3 +352,7 @@ for nom, (fonction, donnees, unite) in variables.items():
         Signaux.afficher_stats(donnees, nom, unite, periode, start, end)
 
 plt.show()
+
+frequences_max, amplitudes_max, phase = Signaux.fast_fourier(Signaux.tavg)
+
+Signaux.reconstruction(frequences_max, amplitudes_max, Signaux.tavg[23360:len(Signaux.tavg)], phase)
