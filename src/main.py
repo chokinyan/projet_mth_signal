@@ -229,7 +229,17 @@ class Signal:
 
         if plot:
             plt.figure(figsize=(10, 5))
-            plt.plot(signal, label=f"Signal reconstruit avec {n_harmonics} harmoniques")
+                        
+                        
+            plt.plot(
+                self.__data[donnée][0][start:end],
+                label=f"Signal original de {donnée} ({unite})",
+                alpha=0.3,
+                color='red'
+            )
+            
+            plt.plot(signal, label=f"Signal reconstruit avec {n_harmonics} harmoniques",color='black')
+            
             plt.title(f"Signal reconstruit de {donnée} ({unite})")
             plt.xlabel("Temps (jours)")
             plt.ylabel("Valeur")
