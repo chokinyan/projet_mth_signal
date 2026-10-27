@@ -3,356 +3,247 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 
 # %%
-class Data:
+class Signal:
     """
-    Classe des data et gestions des data
+    Classe Signal qui permet de charger et de visualiser les données météorologiques de Strasbourg Entzheim.
     """
 
     def __init__(self) -> None:
 
         self.__file_path = (
-            Path(__file__).parent / ".." / "data" / "strasbourg_entzheim.csv"
+            Path(__file__).parents[1].resolve() / "data" / "strasbourg_entzheim.csv"
         ).resolve()
 
-        self.__data = np.genfromtxt(
-            self.__file_path,
-            delimiter=",",
-            skip_header=1,
-            usecols=range(1, 11),
-            filling_values=np.nan,
-        )
+        self.__df = pd.read_csv(filepath_or_buffer=self.__file_path, sep=",")
 
         # température moyenne
-        self.tavg = self.__data[:, 0]
+        self.tavg = self.__df["tavg"].to_numpy()
+
         # température minimum
-        self.tmin = self.__data[:, 1]
+        self.tmin = self.__df["tmin"].to_numpy()
+
         # température maximum
-        self.tmax = self.__data[:, 2]
+        self.tmax = self.__df["tmax"].to_numpy()
+
         # taux de précipitation
-        self.prcp = self.__data[:, 3]
+        self.prcp = self.__df["prcp"].to_numpy()
+
         # taux de neige
-        self.snow = self.__data[:, 4]
+        self.snow = self.__df["snow"].to_numpy()
+
         # direction du vent
-        self.wdir = self.__data[:, 5]
+        self.wdir = self.__df["wdir"].to_numpy()
+
         # vitesse du vent (en km/h)
-        self.wspd = self.__data[:, 6]
+        self.wspd = self.__df["wspd"].to_numpy()
+
         # pic de rafale (en km/h)
-        self.wpgt = self.__data[:, 7]
+        self.wpgt = self.__df["wpgt"].to_numpy()
+
         # pression atmosphérique (en hPa)
-        self.pres = self.__data[:, 8]
+        self.pres = self.__df["pres"].to_numpy()
+
         # durée d’ensoleillement (en minutes)
-        self.tsun = self.__data[:, 9]
+        self.tsun = self.__df["tsun"].to_numpy()
 
-    def calculer_moyenne_mediane(self, data):
-        return np.nanmean(data), np.nanmedian(data)
+        self.__data = {
+            "tavg": (self.tavg, "°C"),
+            "tmin": (self.tmin, "°C"),
+            "tmax": (self.tmax, "°C"),
+            "prcp": (self.prcp, "mm"),
+            "snow": (self.snow, "mm"),
+            "wdir": (self.wdir, "°"),
+            "wspd": (self.wspd, "km/h"),
+            "wpgt": (self.wpgt, "km/h"),
+            "pres": (self.pres, "hPa"),
+            "tsun": (self.tsun, "min"),
+        }
 
-    def fast_fourier(self, signal):
-        taille = len(signal)
+    def __check_data(self, donnée: str | tuple) -> None:
+        """Vérifie si la donnée est valide
 
-        fourier = np.fft.rfft(signal)
-        frequences = np.fft.rfftfreq(taille, 1)
-        amplitudes = np.abs(fourier) * 2 / taille
+        Args:
+            donnée (str | tuple): Nom de la donnée à vérifier.
 
-        # j'enlève la valeure 0, car quand elle est là on a des valeures faussées
-        frequences = frequences[1:]
-        amplitudes = amplitudes[1:]
+        Raises:
+            ValueError: Si la donnée n'est pas valide.
+        """
 
-        # on prend les idices, on les trie et on prend les 100 plus grands, nos fréquences ce seront les100 indices correspondants
-        indices = np.arange(1, len(frequences))
-        indices_max = indices[np.argsort(amplitudes[indices])[-100:]]
+        if isinstance(donnée, tuple):
+            for d in donnée:
+                if d not in self.__data:
+                    raise ValueError(f"{d} n'est pas une donnée valide.")
+        else:
+            if donnée not in self.__data:
+                raise ValueError(f"{donnée} n'est pas une donnée valide.")
 
-        frequences_max = frequences[indices_max]
-        amplitudes_max = amplitudes[indices_max]
-        phases_max = np.angle(fourier[indices_max])
+    def plot_signal(self, donnée: str | tuple, start: int = 0, end: int = 365) -> None:
+        """Génère le plot d'un ou plusieurs signal
 
-        # ça rajoute un peu d'espace car sinon c'est illisible
-        masque = frequences <= 0.02
+        Args:
+            donnée (str | tuple): Nom de la donnée ou tuple de noms de données à afficher.
+            start (int, optional): Index de départ. Defaults to 0.
+            end (int, optional): Index d'arrivée. Defaults to 365.
 
+        Raises:
+            ValueError: Si la donnée n'est pas valide.
+        """
 
-        plt.figure(figsize=(10, 4))
+        données = donnée if isinstance(donnée, tuple) else (donnée,)
 
-        plt.plot(frequences[masque], amplitudes[masque])
+        self.__check_data(données)
 
-        plt.xlabel("Fréquence")
+        plt.figure(figsize=(10, 5))
+
+        for d in données:
+            valeurs, unité = self.__data[d]
+            x = np.asarray(valeurs[start:end], dtype=float)
+
+            plt.plot(x, label=f"{d} ({unité})")
+
+        plt.title(" / ".join(données))
+
+        plt.xlabel("Temps (jours)")
+        plt.ylabel("Valeur")
+
+        plt.grid()
+        plt.legend()
+
+        plt.show()
+
+    def signal_data(
+        self, donnée: str, start: int = 0, end: int = 365
+    ) -> tuple[np.ndarray, np.ndarray, str, np.ndarray, float]:
+        """Retourne les données d'un signal
+
+        Args:
+            donnée (str): Nom de la donnée à afficher.
+            start (int, optional): Index de départ. Defaults to 0.
+            end (int, optional): Index d'arrivée. Defaults to 365.
+
+        Raises:
+            ValueError: Si la donnée n'est pas valide.
+        """
+        self.__check_data(donnée)
+
+        valeurs, unite = self.__data[donnée]
+
+        x = np.asarray(valeurs[start:end], dtype=float)
+
+        len_x = len(x)
+
+        if np.isnan(
+            x
+        ).all():  # Check si les données contiennent que des valeurs manquantes
+            raise ValueError(f"Les données de {donnée} contiennent aucune valeur.")
+
+        if np.isnan(x).any():
+            x = (
+                pd.Series(x).interpolate(limit_direction="both").to_numpy()
+            )  # On remplace les valeurs manquantes par interpolation linéaire ( on prend le plus proche voisin pour les valeurs manquantes au début et à la fin )
+
+        amp = (
+            np.abs(np.fft.rfft(x)) * 2 / len_x
+        )  # On calcule l'amplitude de la transformée de Fourier et on la normalise
+
+        fft_freq = np.fft.rfftfreq(len_x, d=1)
+
+        phase = np.angle(
+            np.fft.rfft(x)
+        )  # On calcule la phase de la transformée de Fourier
+
+        return (
+            amp[1 : len(amp)],
+            fft_freq[1 : len(amp)],
+            unite,
+            phase[1 : len(amp)],
+            float(x.mean()),
+        )  # On retourne l'amplitude, la fréquence, l'unité, la phase du signal et la valeur moyenne du signal
+
+    def spectrum(self, donnée: str, start: int = 0, end: int = 365) -> None:
+        """Génère le spectre d'un signal
+
+        Args:
+            donnée (str): Nom de la donnée à afficher.
+            start (int, optional): Index de départ. Defaults to 0.
+            end (int, optional): Index d'arrivée. Defaults to 365.
+
+        Raises:
+            ValueError: Si la donnée n'est pas valide.
+        """
+
+        amp, fft_freq, unite, _, _ = self.signal_data(donnée, start, end)
+
+        plt.figure(figsize=(10, 5))
+
+        plt.stem(fft_freq[: len(amp)], amp, markerfmt=" ", basefmt=" ")
+
+        plt.title(f"Spectre de {donnée} ({unite})")
+
+        plt.xlabel("Fréquence (cycles/jour)")
         plt.ylabel("Amplitude")
-        plt.title("Spectre de Fourier de la température moyenne")
 
-        plt.grid(True, alpha=0.4)
-        plt.tight_layout()
+        plt.grid()
         plt.show()
 
-        return frequences_max, amplitudes_max, phases_max
-
-    def reconstruction(self, fmax, amax, signal, phase):
-        t = np.arange(len(signal))
-        moyenne = np.mean(signal)
-
-        reconstruction = moyenne
-
-        for f, a, p in zip(fmax, amax, phase):
-            reconstruction += a * np.cos(2 * np.pi * f * t + p)
-
-        plt.figure(figsize=(12, 5))
-        plt.plot(t, signal, label="Signal original", alpha=0.6)
-        plt.plot(t, reconstruction, label="Reconstruction de Fourier", color="red")
-
-        plt.xlabel("Jours")
-        plt.ylabel("Température (°C)")
-        plt.title("Reconstruction de la température moyenne")
-        plt.legend()
-        plt.grid(True, alpha=0.4)
-        plt.tight_layout()
-        plt.show()
-
-    def afficher_stats(self, data, nom, unite, periode, start, end):
-        # Affiche moyenne et médiane d'une variable sur une période.
-        moy, med = self.calculer_moyenne_mediane(data[start:end])
-        print(f"{nom} ({periode}) : la moyenne est de : {moy} {unite} et la médiane : {med} {unite}")
-
-    def finaliser(self, titre, ylabel, start, end, periode):
-        titre_complet = f"{titre} – {periode}" if periode else titre
-
-        plt.title(titre_complet)
-        plt.xlabel(f"Jours depuis le début de la période ({end - start} jours)")
-        plt.ylabel(ylabel)
-        plt.grid(True, alpha=0.4)
-        plt.legend()
-        plt.tight_layout()
-
-        try:
-            plt.gcf().canvas.manager.set_window_title(titre_complet)
-        except AttributeError:
-            pass
-
-    def plot_temp(self, start: int = 0, end: int = 356, periode: str = ""):
-        """
-        Crée les plots pour les échantillons des températures
+    def reconstruct_signal(
+        self,
+        donnée: str,
+        start: int = 0,
+        end: int = 365,
+        n_harmonics: int = 10,
+        plot: bool = False,
+    ) -> np.ndarray | None:
+        """Reconstruit le signal à partir de ses n premières harmoniques
 
         Args:
-            start (int, optional): Jours de début. Defaults to 0.
-            end (int, optional): Jours de fin. Defaults to 356.
+            donnée (str): Nom de la donnée à reconstruire.
+            start (int, optional): Index de départ. Defaults to 0.
+            end (int, optional): Index d'arrivée. Defaults to 365.
+            n_harmonics (int, optional): Nombre d'harmoniques à utiliser pour la reconstruction. Defaults to 10.
+
+        Raises:
+            ValueError: Si la donnée n'est pas valide.
         """
 
-        plt.figure(figsize=(10, 4))
+        amp, fft_freq, unite, phase, mean_value = self.signal_data(donnée, start, end)
 
-        plt.plot(
-            self.tmax[start:end],
-            label="Tmax (Max)",
-            color="tab:red",
-            linestyle="--",
-            alpha=0.8,
-        )
+        signal = np.zeros(
+            len(amp) * 2, dtype=float
+        )  # On initialise le signal à reconstruire
 
-        plt.plot(
-            self.tavg[start:end],
-            label="Tavg (Moyenne)",
-            color="black",
-            linewidth=1.5,
-        )
+        n_harmonics = min(
+            n_harmonics, len(amp)
+        )  # On s'assure de ne pas dépasser le nombre d'harmoniques disponibles
 
-        plt.plot(
-            self.tmin[start:end],
-            label="Tmin (Min)",
-            color="tab:blue",
-            linestyle="--",
-            alpha=0.8,
-        )
+        signal += mean_value  # On ajoute la valeur moyenne du signal
 
-        self.finaliser(
-            "Températures journalières à Strasbourg-Entzheim",
-            "Température (°C)",
-            start,
-            end,
-            periode,
-        )
+        t = np.arange(len(amp) * 2, dtype=float)
 
-    def plot_snow(self, start: int = 0, end: int = 356, periode: str = ""):
-        """
-        Crée les plots pour les échantillons de neige
+        for i in range(n_harmonics):
+            signal += amp[i] * np.cos(2 * np.pi * fft_freq[i] * t + phase[i])
 
-        Args:
-            start (int, optional): Jours de début. Defaults to 0.
-            end (int, optional): Jours de fin. Defaults to 356.
-        """
+        if plot:
+            plt.figure(figsize=(10, 5))
+            plt.plot(signal, label=f"Signal reconstruit avec {n_harmonics} harmoniques")
+            plt.title(f"Signal reconstruit de {donnée} ({unite})")
+            plt.xlabel("Temps (jours)")
+            plt.ylabel("Valeur")
+            plt.grid()
+            plt.legend()
+            plt.show()
 
-        plt.figure(figsize=(10, 4))
-
-        plt.plot(
-            self.snow[start:end],
-            label="Snow",
-            color="tab:blue",
-        )
-
-        self.finaliser(
-            "Hauteur de neige quotidienne à Strasbourg-Entzheim",
-            "Neige (mm)",
-            start,
-            end,
-            periode,
-        )
-
-    def plot_precipitation(self, start: int = 0, end: int = 356, periode: str = ""):
-        """
-        Crée les plots pour les échantillons des précipitions
-
-        Args:
-            start (int, optional): Jours de début. Defaults to 0.
-            end (int, optional): Jours de fin. Defaults to 356.
-        """
-
-        plt.figure(figsize=(10, 4))
-
-        plt.plot(
-            self.prcp[start:end],
-            label="Précipitation",
-            color="tab:blue",
-        )
-
-        self.finaliser(
-            "Précipitations quotidiennes à Strasbourg-Entzheim",
-            "Précipitations (mm)",
-            start,
-            end,
-            periode,
-        )
-
-    def plot_wind_direction(self, start: int = 0, end: int = 356, periode: str = ""):
-        """
-        Crée les plots pour les échantillons de direction du vent
-
-        Args:
-            start (int, optional): Jours de début. Defaults to 0.
-            end (int, optional): Jours de fin. Defaults to 356.
-        """
-
-        plt.figure(figsize=(10, 4))
-
-        plt.plot(
-            self.wdir[start:end],
-            label="Précipitation",
-            color="tab:blue",
-        )
-
-        self.finaliser(
-            "Direction moyenne du vent à Strasbourg-Entzheim",
-            "Direction (°) – 0°=Nord, 90°=Est, 180°=Sud, 270°=Ouest",
-            start,
-            end,
-            periode,
-        )
-
-    def plot_wind(self, start: int = 0, end: int = 356, periode: str = ""):
-        """
-        Crée les plots pour les échantillons de vitesse du vent
-
-        Args:
-            start (int, optional): Jours de début. Defaults to 0.
-            end (int, optional): Jours de fin. Defaults to 356.
-        """
-
-        plt.figure(figsize=(10, 4))
-
-        plt.plot(
-            self.wspd[start:end],
-            label="Wspd",
-            color="black",
-        )
-
-        plt.plot(
-            self.wpgt[start:end],
-            label="Wpgt",
-            color="tab:blue",
-        )
-
-        self.finaliser(
-            "Vitesse du vent et rafales à Strasbourg-Entzheim",
-            "Vitesse (km/h)",
-            start,
-            end,
-            periode,
-        )
-
-    def plot_pressure(self, start: int = 0, end: int = 356, periode: str = ""):
-        """
-        Crée les plots pour les échantillons de pression atmosphérique
-
-        Args:
-            start (int, optional): Jours de début. Defaults to 0.
-            end (int, optional): Jours de fin. Defaults to 356.
-        """
-
-        plt.figure(figsize=(10, 4))
-
-        plt.plot(
-            self.pres[start:end],
-            label="Précipitation",
-            color="tab:blue",
-        )
-
-        self.finaliser(
-            "Pression atmosphérique quotidienne à Strasbourg-Entzheim",
-            "Pression (hPa)",
-            start,
-            end,
-            periode,
-        )
-
-    def plot_temps_soleil(self, start: int = 0, end: int = 356, periode: str = ""):
-        """
-        Crée les plots pour les échantillons de durée d’ensoleillement
-
-        Args:
-            start (int, optional): Jours de début. Defaults to 0.
-            end (int, optional): Jours de fin. Defaults to 356.
-        """
-
-        plt.figure(figsize=(10, 4))
-
-        plt.plot(
-            self.tsun[start:end],
-            label="Précipitation",
-            color="tab:red",
-        )
-
-        self.finaliser(
-            "Durée d'ensoleillement quotidienne à Strasbourg-Entzheim",
-            "Ensoleillement (minutes)",
-            start,
-            end,
-            periode,
-        )
+        else:
+            return signal
 
 
 # %%
-Signaux = Data()
 
-periodes = {
-    "Période complète": (0, len(Signaux.tavg)),
-    "1950-1960": (0, 3650),
-    "2014-2024": (23360, len(Signaux.tavg)),
-    "Année 2024": (len(Signaux.tavg) - 365, len(Signaux.tavg)),
-}
+if __name__ == "__main__":
+    test = Signal()
 
-variables = {
-    # "TEMPÉRATURES": (Signaux.plot_temp, Signaux.tavg, "°C"),
-    # "PRÉCIPITATIONS": (Signaux.plot_precipitation, Signaux.prcp, "mm"),
-    # "ENSOLEILLEMENT": (Signaux.plot_temps_soleil, Signaux.tsun, "min"),
-    # "NEIGE": (Signaux.plot_snow, Signaux.snow, "mm"),
-    # "VENT": (Signaux.plot_wind, Signaux.wspd, "km/h"),
-    # "PRESSION": (Signaux.plot_pressure, Signaux.pres, "hPa"),
-}
-
-for nom, (fonction, donnees, unite) in variables.items():
-    print(f"\n// {nom} //")
-    for periode, (start, end) in periodes.items():
-        fonction(start, end, periode)
-        Signaux.afficher_stats(donnees, nom, unite, periode, start, end)
-
-plt.show()
-
-frequences_max, amplitudes_max, phase = Signaux.fast_fourier(Signaux.tavg)
-
-Signaux.reconstruction(frequences_max, amplitudes_max, Signaux.tavg[23360:len(Signaux.tavg)], phase)
+    test.reconstruct_signal("tavg", start=0, end=500, n_harmonics=100, plot=True)
