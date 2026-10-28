@@ -80,6 +80,7 @@ class Signal:
         else:
             if donnée not in self.__data:
                 raise ValueError(f"{donnée} n'est pas une donnée valide.")
+    
 
     def plot_signal(self, donnée: str | tuple, start: int = 0, end: int = 365) -> None:
         """Génère le plot d'un ou plusieurs signal
@@ -103,7 +104,7 @@ class Signal:
             valeurs, unité = self.__data[d]
             x = np.asarray(valeurs[start:end], dtype=float)
 
-            plt.plot(x, label=f"{d} ({unité})")
+            plt.plot(x, label=f"{d} ({unité})", color="#241052")
 
         plt.title(" / ".join(données))
 
@@ -178,6 +179,10 @@ class Signal:
 
         amp, fft_freq, unite, _, _ = self.signal_data(donnée, start, end)
 
+        f_max = np.max(fft_freq)
+
+        print("Fréquence maximale du spectre :", f_max, "cycles/jour")
+
         plt.figure(figsize=(10, 5))
 
         plt.stem(fft_freq[: len(amp)], amp, markerfmt=" ", basefmt=" ")
@@ -224,7 +229,9 @@ class Signal:
 
         t = np.arange(len(amp) * 2, dtype=float)
 
-        for i in range(n_harmonics):
+        indices = np.argsort(amp)[-n_harmonics:]
+
+        for i in indices:
             signal += amp[i] * np.cos(2 * np.pi * fft_freq[i] * t + phase[i])
 
         if plot:
@@ -235,7 +242,7 @@ class Signal:
                 self.__data[donnée][0][start:end],
                 label=f"Signal original de {donnée} ({unite})",
                 alpha=0.3,
-                color='red'
+                color='#CF79DD'
             )
             
             plt.plot(signal, label=f"Signal reconstruit avec {n_harmonics} harmoniques",color='black')
@@ -373,6 +380,6 @@ class Signal:
 if __name__ == "__main__":
     test = Signal()
 
-    test.reconstruct_signal("tavg", start=0, end=500, n_harmonics=100, plot=True)
-    test.downsample("tavg", factor=7, start=0, end=5000, plot=True, antialias=False)
+    test.spectrum("tavg", len(test.tavg)-3650, len(test.tavg))
+    test.reconstruct_signal("tavg", len(test.tavg)-3650, len(test.tavg), 100, True)
 # %%
