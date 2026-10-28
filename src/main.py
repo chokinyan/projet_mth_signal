@@ -250,6 +250,60 @@ class Signal:
         else:
             return signal
 
+    def downsample(self, donnée: str, factor: int, start: int = 0, end: int = 365,
+               plot: bool = True, antialias: bool = True) -> np.ndarray:
+        """Sous-échantillonne un signal d'un facteur `factor`.
+
+        Args:
+            donnée (str): Nom de la donnée.
+            factor (int): Facteur de sous-échantillonnage (1 point conservé sur `factor`).
+            start (int, optional): Index de départ.
+            end (int, optional): Index d'arrivée.
+            plot (bool, optional): Affiche le signal sous-échantillonné.
+            antialias (bool, optional): Applique un filtre passe-bas (moyenne glissante)
+                avant la décimation pour limiter le repliement spectral.
+
+        Raises:
+            ValueError: Si la donnée n'est pas valide ou si factor < 1.
+        """
+        self.__check_data(donnée)
+
+        factor, start, end = int(factor), int(start), int(end)
+        if factor < 1:
+            raise ValueError("Le facteur doit être un entier >= 1.")
+
+        valeurs, unite = self.__data[donnée]          # on garde l'unité
+        original = np.asarray(valeurs[start:end], dtype=float)
+
+        if np.isnan(original).all():
+            raise ValueError(f"Les données de {donnée} contiennent aucune valeur.")
+
+        # Même traitement des valeurs manquantes que dans signal_data
+        x = pd.Series(original).interpolate(limit_direction="both").to_numpy()
+
+        if antialias and factor > 1:
+            noyau = np.ones(factor) / factor          # moyenne glissante
+            x = np.convolve(x, noyau, mode="same")    # filtre passe-bas
+
+        resultat = x[::factor]                        # décimation (avant le plot)
+
+        if plot:
+            t_resultat = np.arange(len(x))[::factor]  # vrais instants des points conservés
+
+            plt.figure(figsize=(10, 5))
+            plt.plot(original, label=f"Signal original de {donnée} ({unite})",
+                    alpha=0.3, color="red")
+            plt.plot(t_resultat, resultat, "o-", markersize=3, color="black",
+                    label=f"Signal sous-échantillonné (facteur {factor})")
+
+            plt.title(f"Sous-échantillonnage de {donnée} ({unite})")
+            plt.xlabel("Temps (jours)")
+            plt.ylabel("Valeur")
+            plt.grid()
+            plt.legend()
+            plt.show()
+
+        return resultat
 
 # %%
 
@@ -257,3 +311,5 @@ if __name__ == "__main__":
     test = Signal()
 
     test.reconstruct_signal("tavg", start=0, end=500, n_harmonics=100, plot=True)
+    test.downsample("tavg", factor=7, start=0, end=5000, plot=True, antialias=False)
+# %%
