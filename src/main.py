@@ -195,6 +195,8 @@ class Signal:
         plt.grid()
         plt.show()
 
+        return f_max
+
     def reconstruct_signal(
         self,
         donnée: str,
@@ -279,6 +281,13 @@ class Signal:
         if factor < 1:
             raise ValueError("Le facteur doit être un entier >= 1.")
 
+
+        fe = 1 / factor
+        f_nyquist = fe / 2
+
+        print(f"Fréquence d'échantillonnage : {fe:.4f} échantillons/jour")
+        print(f"Fréquence de Nyquist : {f_nyquist:.4f} cycles/jour")
+
         valeurs, unite = self.__data[donnée]          # on garde l'unité
         original = np.asarray(valeurs[start:end], dtype=float)
 
@@ -299,8 +308,8 @@ class Signal:
 
             plt.figure(figsize=(10, 5))
             plt.plot(original, label=f"Signal original de {donnée} ({unite})",
-                    alpha=0.3, color="red")
-            plt.plot(t_resultat, resultat, "o-", markersize=3, color="black",
+                    alpha=0.3, color="#CF79DD")
+            plt.plot(t_resultat, resultat, color="black",
                     label=f"Signal sous-échantillonné (facteur {factor})")
 
             plt.title(f"Sous-échantillonnage de {donnée} ({unite})")
@@ -312,9 +321,7 @@ class Signal:
 
         return resultat
     
-    def filter_signal(
-        self, donnée: str, start: int = 0, end: int = 365, M: int = 7
-    ) -> np.ndarray:
+    def filter_signal(self, donnée: str, start: int = 0, end: int = 365, M: int = 10) -> np.ndarray:
         """Filtre le signal à partir de ses n premières harmoniques
 
         Args:
@@ -364,7 +371,7 @@ class Signal:
         y = np.fft.irfft(Y, n=len_x)
 
         plt.figure(figsize=(10, 5))
-        plt.plot(x, label=f"Signal original de {donnée}", alpha=0.3, color="red")
+        plt.plot(x, label=f"Signal original de {donnée}", alpha=0.3, color="#CF79DD")
         plt.plot(y, label=f"Signal filtré de {donnée} avec M={M}", color="black")
         plt.title(f"Signal filtré de {donnée}")
         plt.xlabel("Temps (jours)")
@@ -375,11 +382,34 @@ class Signal:
 
         return y
 
+    def plot_filtered_spectrum(self, data, start, end, M):
+        valeurs, unite = self.__data[data]
+        x = pd.Series(np.asarray(valeurs[start:end], dtype=float)).interpolate(limit_direction="both").to_numpy()
+        y = self.filter_signal(data, start, end, M)
+        freq = np.fft.rfftfreq(len(x), d=1)
+
+        spectre_original = np.abs(np.fft.rfft(x)) * 2 / len(x)
+        spectre_filtre = np.abs(np.fft.rfft(y)) * 2 / len(x)
+
+        plt.plot(freq[1:], spectre_original[1:], label="Signal original", color="#CF79DD")
+        plt.plot(freq[1:], spectre_filtre[1:], label=f"Signal filtré (M={M})", color="black")
+
+        plt.title(f"Comparaison des spectres de {data} ({unite})")
+        plt.xlabel("Fréquence (cycles/jour)")
+        plt.ylabel("Amplitude")
+        plt.grid()
+        plt.legend()
+        plt.show()
+
+
+    
+
+
 # %%
 
 if __name__ == "__main__":
     test = Signal()
 
-    test.spectrum("tavg", len(test.tavg)-3650, len(test.tavg))
-    test.reconstruct_signal("tavg", len(test.tavg)-3650, len(test.tavg), 100, True)
+    test.plot_filtered_spectrum("tavg", len(test.tavg) - 3650, len(test.tavg), 10)
+
 # %%
