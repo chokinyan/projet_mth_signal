@@ -259,8 +259,7 @@ class Signal:
         else:
             return signal
 
-    def downsample(self, donnée: str, factor: int, start: int = 0, end: int = 365,
-               plot: bool = True, antialias: bool = True) -> np.ndarray:
+    def downsample(self, donnée: str, factor: int, start: int = 0, end: int = 365, plot: bool = True, antialias: bool = False) -> np.ndarray:
         """Sous-échantillonne un signal d'un facteur `factor`.
 
         Args:
@@ -280,8 +279,7 @@ class Signal:
         factor, start, end = int(factor), int(start), int(end)
         if factor < 1:
             raise ValueError("Le facteur doit être un entier >= 1.")
-
-
+        
         fe = 1 / factor
         f_nyquist = fe / 2
 
@@ -320,6 +318,33 @@ class Signal:
             plt.show()
 
         return resultat
+
+    def plot_filtered_down(self, data, factor, start, end, plot=True, antialias=False):
+        valeurs, unite = self.__data[data]
+        x = pd.Series(np.asarray(valeurs[start:end], dtype=float)).interpolate(limit_direction="both").to_numpy()
+        y = self.downsample(data, factor, start, end, plot, antialias)
+        # freq_original = np.fft.rfftfreq(len(x), d=1)
+        # spectre_original = np.abs(np.fft.rfft(x)) * 2 / len(x)
+
+        freq_filtre = np.fft.rfftfreq(len(y), d=factor)
+        spectre_filtre = np.abs(np.fft.rfft(y)) * 2 / len(x)
+
+        indice_max = np.argmax(spectre_filtre[1:]) + 1
+        frequence_max = freq_filtre[indice_max]
+        amplitude_max = spectre_filtre[indice_max]
+
+        print(f"Fréquence du pic maximal : {frequence_max:.6f} cycles/jour")
+        print(f"Amplitude maximale : {amplitude_max:.4f}")
+
+        # plt.plot(freq_original[1:], spectre_original[1:], label="spectre original", color="#CF79DD")
+        plt.plot(freq_filtre[1:], spectre_filtre[1:], label=f"spectre sous échantillonné (facteur={factor})", color="black")
+
+        plt.title(f"Comparaison des spectres de {data} ({unite})")
+        plt.xlabel("Fréquence (cycles/jour)")
+        plt.ylabel("Amplitude")
+        plt.grid()
+        plt.legend()
+        plt.show()
     
     def filter_signal(self, donnée: str, start: int = 0, end: int = 365, M: int = 10) -> np.ndarray:
         """Filtre le signal à partir de ses n premières harmoniques
@@ -402,14 +427,13 @@ class Signal:
         plt.show()
 
 
-    
-
-
 # %%
 
 if __name__ == "__main__":
     test = Signal()
 
-    test.plot_filtered_spectrum("tavg", len(test.tavg) - 3650, len(test.tavg), 10)
+    test.plot_signal("pres", len(test.tavg)-365, len(test.tavg))
+
+    test.plot_filtered_down("tavg", 30, 0, len(test.tavg))
 
 # %%
