@@ -432,8 +432,7 @@ class Signal:
 if __name__ == "__main__":
     test = Signal()
 
-    test.plot_signal("pres", len(test.tavg)-365, len(test.tavg))
-
-    test.plot_filtered_down("tavg", 30, 0, len(test.tavg))
+    test.plot_filtered_spectrum("tavg", 0, 3650, 365)
+    test.plot_filtered_spectrum("tavg", 0, len(test.tavg), 365)
 
 # %%
