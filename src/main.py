@@ -16,7 +16,7 @@ class Signal:
     def __init__(self) -> None:
 
         self.__file_path = (
-            Path.cwd() / ".." / "data" / "strasbourg_entzheim.csv"
+            Path(__file__).parents[1].resolve() / ".." / "data" / "strasbourg_entzheim.csv"
         ).resolve()
 
         self.__df = pd.read_csv(filepath_or_buffer=self.__file_path, sep=",")
