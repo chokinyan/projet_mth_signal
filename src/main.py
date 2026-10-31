@@ -396,5 +396,5 @@ class Signal:
 
 
 test = Signal()
-test.plot_signal("tavg", 0, 3650)
-test.plot_signal("tavg", len(test.tavg)-3650, len(test.tavg))
+test.plot_signal("pres", len(test.tavg)-450, len(test.tavg)-250)
+test.plot_signal("pres", len(test.tavg)-250, len(test.tavg)-100)
