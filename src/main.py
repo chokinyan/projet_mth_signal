@@ -64,13 +64,13 @@ class Signal:
         }
 
     def __check_data(self, donnée: str | tuple) -> None:
-        """Vérifie si la donnée est valide
+        """
+            Vérifie si la donnée est valide
 
-        Args:
-            donnée (str | tuple): Nom de la donnée à vérifier.
-
-        Raises:
-            ValueError: Si la donnée n'est pas valide.
+            Args:
+                donnée (str | tuple): Nom de la donnée à vérifier.
+            Raises:
+                ValueError: Si la donnée n'est pas valide.
         """
 
         if isinstance(donnée, tuple):
@@ -121,54 +121,37 @@ class Signal:
 
         plt.show()
 
-    def signal_data(
-        self, donnée: str, start: int = 0, end: int = 365
-    ) -> tuple[np.ndarray, np.ndarray, str, np.ndarray, float]:
+    def signal_data(self, donnée: str, start: int = 0, end: int = 365) -> tuple[np.ndarray, np.ndarray, str, np.ndarray, float]:
         """Retourne les données d'un signal
 
-        Args:
-            donnée (str): Nom de la donnée à afficher.
-            start (int, optional): Index de départ. Defaults to 0.
-            end (int, optional): Index d'arrivée. Defaults to 365.
+            Args:
+                donnée (str): Nom de la donnée à afficher.
+                start (int, optional): Index de départ. Defaults to 0.
+                end (int, optional): Index d'arrivée. Defaults to 365.
 
-        Raises:
-            ValueError: Si la donnée n'est pas valide.
+            returns :
+                l'amplitude, la fréquence, l'unité, la phase du signal et la valeur moyenne du signal
         """
         self.__check_data(donnée)
 
         valeurs, unite = self.__data[donnée]
 
         x = np.asarray(valeurs[start:end], dtype=float)
-
         len_x = len(x)
 
-        if np.isnan(
-            x
-        ).all():  # Check si les données contiennent que des valeurs manquantes
+        if np.isnan(x).all():  # Check si les données contiennent que des valeurs manquantes
             raise ValueError(f"Les données de {donnée} contiennent aucune valeur.")
 
         if np.isnan(x).any():
-            x = (
-                pd.Series(x).interpolate(limit_direction="both").to_numpy()
-            )  # On remplace les valeurs manquantes par interpolation linéaire ( on prend le plus proche voisin pour les valeurs manquantes au début et à la fin )
+            x = (pd.Series(x).interpolate(limit_direction="both").to_numpy())  # On remplace les valeurs manquantes par interpolation linéaire ( on prend le plus proche voisin pour les valeurs manquantes au début et à la fin )
 
-        amp = (
-            np.abs(np.fft.rfft(x)) * 2 / len_x
-        )  # On calcule l'amplitude de la transformée de Fourier et on la normalise
+        amp = (np.abs(np.fft.rfft(x)) * 2 / len_x)
 
         fft_freq = np.fft.rfftfreq(len_x, d=1)
 
-        phase = np.angle(
-            np.fft.rfft(x)
-        )  # On calcule la phase de la transformée de Fourier
+        phase = np.angle(np.fft.rfft(x))
 
-        return (
-            amp[1 : len(amp)],
-            fft_freq[1 : len(amp)],
-            unite,
-            phase[1 : len(amp)],
-            float(x.mean()),
-        )  # On retourne l'amplitude, la fréquence, l'unité, la phase du signal et la valeur moyenne du signal
+        return (amp[1 : len(amp)], fft_freq[1 : len(amp)], unite, phase[1 : len(amp)], float(x.mean()))  # On retourne l'amplitude, la fréquence, l'unité, la phase du signal et la valeur moyenne du signal
 
     def spectrum(self, donnée: str, start: int = 0, end: int = 365) -> None:
         """Génère le spectre d'un signal
@@ -354,13 +337,13 @@ class Signal:
     def filter_signal(self, donnée: str, start: int = 0, end: int = 365, M: int = 10) -> np.ndarray:
         """Filtre le signal à partir de ses n premières harmoniques
 
-        Args:
-            donnée (str): Nom de la donnée à filtrer.
-            start (int): Index de départ.
-            end (int): Index d'arrivée.
-            M (int): Paramètre de filtrage.
-        Raises:
-            ValueError: Si la donnée n'est pas valide.
+            Args:
+                donnée (str): Nom de la donnée à filtrer.
+                start (int): Index de départ.
+                end (int): Index d'arrivée.
+                M (int): Paramètre de filtrage.
+            returns:
+                le signal filtré
         """
 
         self.__check_data(donnée)
