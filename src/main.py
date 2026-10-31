@@ -13,11 +13,7 @@ class Signal:
     """
 
     def __init__(self) -> None:
-
-        self.__file_path = (
-            Path(__file__).parents[1].resolve() / "data" / "strasbourg_entzheim.csv"
-        ).resolve()
-
+        self.__file_path = (Path(__file__).parents[1].resolve() / "data" / "strasbourg_entzheim.csv").resolve()
         self.__df = pd.read_csv(filepath_or_buffer=self.__file_path, sep=",")
 
         # température moyenne
@@ -146,23 +142,22 @@ class Signal:
             x = (pd.Series(x).interpolate(limit_direction="both").to_numpy())  # On remplace les valeurs manquantes par interpolation linéaire ( on prend le plus proche voisin pour les valeurs manquantes au début et à la fin )
 
         amp = (np.abs(np.fft.rfft(x)) * 2 / len_x)
-
         fft_freq = np.fft.rfftfreq(len_x, d=1)
-
         phase = np.angle(np.fft.rfft(x))
 
         return (amp[1 : len(amp)], fft_freq[1 : len(amp)], unite, phase[1 : len(amp)], float(x.mean()))  # On retourne l'amplitude, la fréquence, l'unité, la phase du signal et la valeur moyenne du signal
 
     def spectrum(self, donnée: str, start: int = 0, end: int = 365) -> None:
-        """Génère le spectre d'un signal
+        """
+            Génère le spectre d'un signal
 
-        Args:
-            donnée (str): Nom de la donnée à afficher.
-            start (int, optional): Index de départ. Defaults to 0.
-            end (int, optional): Index d'arrivée. Defaults to 365.
+            Args:
+                donnée (str): Nom de la donnée à afficher.
+                start (int, optional): Index de départ. Defaults to 0.
+                end (int, optional): Index d'arrivée. Defaults to 365.
 
-        Raises:
-            ValueError: Si la donnée n'est pas valide.
+            Returns:
+                la fréquence max et affiche le plot du spectre
         """
 
         amp, fft_freq, unite, _, _ = self.signal_data(donnée, start, end)
@@ -185,14 +180,7 @@ class Signal:
 
         return f_max
 
-    def reconstruct_signal(
-        self,
-        donnée: str,
-        start: int = 0,
-        end: int = 365,
-        n_harmonics: int = 10,
-        plot: bool = False,
-    ) -> np.ndarray | None:
+    def reconstruct_signal(self, donnée: str, start: int = 0, end: int = 365, n_harmonics: int = 10, plot: bool = False) -> np.ndarray | None:
         """Reconstruit le signal à partir de ses n premières harmoniques
 
         Args:
@@ -207,13 +195,9 @@ class Signal:
 
         amp, fft_freq, unite, phase, mean_value = self.signal_data(donnée, start, end)
 
-        signal = np.zeros(
-            len(amp) * 2, dtype=float
-        )  # On initialise le signal à reconstruire
+        signal = np.zeros(len(amp) * 2, dtype=float)
 
-        n_harmonics = min(
-            n_harmonics, len(amp)
-        )  # On s'assure de ne pas dépasser le nombre d'harmoniques disponibles
+        n_harmonics = min(n_harmonics, len(amp))  # On s'assure de ne pas dépasser le nombre d'harmoniques disponibles
 
         signal += mean_value  # On ajoute la valeur moyenne du signal
 
@@ -226,15 +210,13 @@ class Signal:
 
         if plot:
             plt.figure(figsize=(10, 5))
-                        
-                        
+
             plt.plot(
                 self.__data[donnée][0][start:end],
                 label=f"Signal original de {donnée} ({unite})",
                 alpha=0.3,
                 color='#CF79DD'
             )
-            
             plt.plot(signal, label=f"Signal reconstruit avec {n_harmonics} harmoniques",color='black')
             
             plt.title(f"Signal reconstruit de {donnée} ({unite})")
@@ -248,19 +230,21 @@ class Signal:
             return signal
 
     def downsample(self, donnée: str, factor: int, start: int = 0, end: int = 365, plot: bool = True, antialias: bool = False) -> np.ndarray:
-        """Sous-échantillonne un signal d'un facteur `factor`.
+        """
+        
+            Sous-échantillonne un signal d'un facteur `factor`.
 
-        Args:
-            donnée (str): Nom de la donnée.
-            factor (int): Facteur de sous-échantillonnage (1 point conservé sur `factor`).
-            start (int, optional): Index de départ.
-            end (int, optional): Index d'arrivée.
-            plot (bool, optional): Affiche le signal sous-échantillonné.
-            antialias (bool, optional): Applique un filtre passe-bas (moyenne glissante)
-                avant la décimation pour limiter le repliement spectral.
+            Args:
+                donnée (str): Nom de la donnée.
+                factor (int): Facteur de sous-échantillonnage (1 point conservé sur `factor`).
+                start (int, optional): Index de départ.
+                end (int, optional): Index d'arrivée.
+                plot (bool, optional): Affiche le signal sous-échantillonné.
+                antialias (bool, optional): Applique un filtre passe-bas (moyenne glissante)
+                    avant la décimation pour limiter le repliement spectral.
 
-        Raises:
-            ValueError: Si la donnée n'est pas valide ou si factor < 1.
+            Returns:
+                ValueError: Si la donnée n'est pas valide ou si factor < 1.
         """
         self.__check_data(donnée)
 
@@ -274,7 +258,7 @@ class Signal:
         print(f"Fréquence d'échantillonnage : {fe:.4f} échantillons/jour")
         print(f"Fréquence de Nyquist : {f_nyquist:.4f} cycles/jour")
 
-        valeurs, unite = self.__data[donnée]          # on garde l'unité
+        valeurs, unite = self.__data[donnée]
         original = np.asarray(valeurs[start:end], dtype=float)
 
         if np.isnan(original).all():
@@ -311,8 +295,8 @@ class Signal:
         valeurs, unite = self.__data[data]
         x = pd.Series(np.asarray(valeurs[start:end], dtype=float)).interpolate(limit_direction="both").to_numpy()
         y = self.downsample(data, factor, start, end, plot, antialias)
-        # freq_original = np.fft.rfftfreq(len(x), d=1)
-        # spectre_original = np.abs(np.fft.rfft(x)) * 2 / len(x)
+        freq_original = np.fft.rfftfreq(len(x), d=1)
+        spectre_original = np.abs(np.fft.rfft(x)) * 2 / len(x)
 
         freq_filtre = np.fft.rfftfreq(len(y), d=factor)
         spectre_filtre = np.abs(np.fft.rfft(y)) * 2 / len(x)
@@ -324,7 +308,7 @@ class Signal:
         print(f"Fréquence du pic maximal : {frequence_max:.6f} cycles/jour")
         print(f"Amplitude maximale : {amplitude_max:.4f}")
 
-        # plt.plot(freq_original[1:], spectre_original[1:], label="spectre original", color="#CF79DD")
+        plt.plot(freq_original[1:], spectre_original[1:], label="spectre original", color="#CF79DD")
         plt.plot(freq_filtre[1:], spectre_filtre[1:], label=f"spectre sous échantillonné (facteur={factor})", color="black")
 
         plt.title(f"Comparaison des spectres de {data} ({unite})")
@@ -354,15 +338,11 @@ class Signal:
 
         len_x = len(x)
 
-        if np.isnan(
-            x
-        ).all():  # Check si les données contiennent que des valeurs manquantes
+        if np.isnan(x).all():  # Check si les données contiennent que des valeurs manquantes
             raise ValueError(f"Les données de {donnée} contiennent aucune valeur.")
 
         if np.isnan(x).any():
-            x = (
-                pd.Series(x).interpolate(limit_direction="both").to_numpy()
-            )  # On remplace les valeurs manquantes par interpolation linéaire ( on prend le plus proche voisin pour les valeurs manquantes au début et à la fin )
+            x = (pd.Series(x).interpolate(limit_direction="both").to_numpy())  # On remplace les valeurs manquantes par interpolation linéaire ( on prend le plus proche voisin pour les valeurs manquantes au début et à la fin )
 
         fft_freq = np.fft.rfftfreq(len_x, d=1)
 
