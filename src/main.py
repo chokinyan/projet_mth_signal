@@ -95,7 +95,7 @@ class Signal:
         """
 
         données = donnée if isinstance(donnée, tuple) else (donnée,)
-
+        
         self.__check_data(données)
 
         plt.figure(figsize=(10, 5))
@@ -103,6 +103,11 @@ class Signal:
         for d in données:
             valeurs, unité = self.__data[d]
             x = np.asarray(valeurs[start:end], dtype=float)
+
+            moyenne = np.nanmean(x)
+            ecart_type = np.nanstd(x)
+
+            print(f"moyenne : {moyenne} / écart type : {ecart_type}")
 
             plt.plot(x, label=f"{d} ({unité})", color="#241052")
 
@@ -427,12 +432,6 @@ class Signal:
         plt.show()
 
 
-# %%
-
-if __name__ == "__main__":
-    test = Signal()
-
-    test.plot_filtered_spectrum("tavg", 0, 3650, 365)
-    test.plot_filtered_spectrum("tavg", 0, len(test.tavg), 365)
-
-# %%
+test = Signal()
+test.plot_signal("tavg", 0, 3650)
+test.plot_signal("tavg", len(test.tavg)-3650, len(test.tavg))
