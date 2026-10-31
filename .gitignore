@@ -10,3 +10,5 @@ env/
 # Outils
 .idea/
 .vscode/
+
+.DS_Store
