@@ -16,7 +16,7 @@ class Signal:
     def __init__(self) -> None:
 
         self.__file_path = (
-            Path(__file__).parents[1].resolve() / ".." / "data" / "strasbourg_entzheim.csv"
+            Path(__file__).parents[1].resolve() / "data" / "strasbourg_entzheim.csv"
         ).resolve()
 
         self.__df = pd.read_csv(filepath_or_buffer=self.__file_path, sep=",")
@@ -168,10 +168,15 @@ class Signal:
 
             moyenne = np.nanmean(x)
             ecart_type = np.nanstd(x)
+            median = np.nanmedian(x)
+            minimum = np.nanmin(x)
+            maximum = np.nanmax(x)
 
-            print(f"moyenne : {moyenne} / écart type : {ecart_type}")
+            print(
+                f"moyenne : {moyenne} / écart type : {ecart_type} / median : {median}/ min : {minimum} / max : {maximum}"
+            )
 
-            series.append((x, f"{d} ({unité})"))
+            series.append((x, label))
             labels.append(label)
 
         self.__plot(series, "Temps (jours)", "Valeur", f"Signal de {', '.join(labels)}")
@@ -238,8 +243,12 @@ class Signal:
         )  # On retourne l'amplitude, la fréquence, l'unité, la phase du signal et la valeur moyenne du signal
 
     def spectrum(
-        self, donnée: str | np.ndarray, start: int = 0, end: int = 365
-    ) -> float:
+        self,
+        donnée: str | np.ndarray,
+        start: int = 0,
+        end: int = 365,
+        unilateral: bool = True,
+    ) -> None:
         """
         Génère le spectre d'un signal
 
@@ -252,9 +261,11 @@ class Signal:
             ValueError: Si la donnée n'est pas valide.
         """
 
-        amp, fft_freq, unite, _, _, _, _ = self.signal_data(donnée, start, end)
+        amp, fft_freq, unite, _, _, x, len_x = self.signal_data(donnée, start, end)
 
-        f_max = np.max(fft_freq)
+        if not (unilateral):
+            fft_freq = np.fft.fftshift(np.fft.fftfreq(len_x, d=1))
+            amp = np.fft.fftshift(np.abs(np.fft.fft(x - x.mean())) / len_x)
 
         self.__plot(
             (amp, f"Spectre de {donnée}"),
@@ -265,8 +276,6 @@ class Signal:
             stem=True,
             show_legend=False,
         )
-
-        return f_max
 
     def downsample(
         self,
@@ -322,8 +331,14 @@ class Signal:
         x = pd.Series(original).interpolate(limit_direction="both").to_numpy()
 
         if antialias and factor > 1:
-            noyau = np.ones(factor) / factor  # moyenne glissante
-            x = np.convolve(x, noyau, mode="same")  # filtre passe-bas
+            # noyau = np.ones(factor) / factor  # moyenne glissante
+            # x = np.convolve(x, noyau, mode="same")  # filtre passe-bas
+            x = (
+                pd.Series(x)
+                .rolling(factor, center=True, min_periods=1)
+                .mean()
+                .to_numpy()
+            )  # moyenne glissante
 
         resultat = x[::factor]  # décimation (avant le plot)
 
@@ -394,7 +409,7 @@ class Signal:
         spectre_original = np.abs(np.fft.rfft(x)) * 2 / len(x)
 
         freq_filtre = np.fft.rfftfreq(len(y), d=factor)
-        spectre_filtre = np.abs(np.fft.rfft(y)) * 2 / len(x)
+        spectre_filtre = np.abs(np.fft.rfft(y)) * 2 / len(y)
 
         indice_max = np.argmax(spectre_filtre[1:]) + 1
         frequence_max = freq_filtre[indice_max]
@@ -432,7 +447,7 @@ class Signal:
         plot: bool = False,
     ) -> np.ndarray:
         """
-        Reconstruit le signal à partir de ses n premières harmoniques
+        Reconstruit le signal à partir de ses `n` premières plus grandes harmoniques
 
         Args:
             donnée (str | np.ndarray): Nom de la donnée à reconstruire ou tableau de données.
@@ -459,8 +474,15 @@ class Signal:
 
         t = np.arange(len_x, dtype=float)
 
+        max_index = np.argsort(amp)[
+            ::-1
+        ]  # Donner les index des plus grande amplitude triée
+
         for i in range(n_harmonics):
-            signal += amp[i] * np.cos(2 * np.pi * fft_freq[i] * t + phase[i])
+            index = max_index[i]
+            signal += amp[index] * np.cos(
+                2 * np.pi * fft_freq[index] * t + phase[index]
+            )
 
         if plot:
             if isinstance(donnée, str):
@@ -556,7 +578,7 @@ class Signal:
         return y
 
     def plot_filtered_spectrum(
-        self, data: str | np.ndarray, start: int = 0, end=0, M: int = 10
+        self, data: str | np.ndarray, start: int = 0, end=365, M: int = 10
     ) -> None:
         """
         Affiche le plot du signal filtré
@@ -600,10 +622,10 @@ class Signal:
         self, data: str | np.ndarray, start: int = 0, end: int = 365
     ) -> np.ndarray:
         """
-        Géneration de l'autoccorélation du signal
+        Génération de l'autocorrélation du signal
 
         Args:
-            data (str | np.ndarray): Nom de la donnée à autocorréler ou tableau de données.
+            data (str | np.ndarray): Nom de la donnée à autocorrélé ou tableau de données.
             start (int, optional): Index de départ. Defaults to 0.
             end (int, optional): Index d'arrivée. Defaults to 365.
 
@@ -622,7 +644,10 @@ class Signal:
 
         x = np.asarray(valeurs[start:end], dtype=float)
 
-        x = x - x.mean()  # Uniformisation des amplitude
+        if np.isnan(x).any():
+            x = pd.Series(x).interpolate(limit_direction="both").to_numpy()
+
+        x = x - x.mean()
 
         n = len(x)
 
@@ -633,10 +658,10 @@ class Signal:
         t = np.arange(n)
 
         self.__plot(
-            (autocor / autocor[0], f"Signal autocorrélé de {data}"),
-            "Temps (jours)",
-            "Valeur",
-            f"Signal corrélé de {data}",
+            (autocor / autocor[0], f"Autocorrélation de {data}"),
+            "Décalage m (jours)",
+            "phi[m] / phi[0]",
+            f"Autocorrélation de {data}",
             x_values=t,
             styles=[{"color": "black"}],
         )
