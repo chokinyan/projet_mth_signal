@@ -16,7 +16,7 @@ class Signal:
     def __init__(self) -> None:
 
         self.__file_path = (
-            Path(__file__).parents[1].resolve() / "data" / "strasbourg_entzheim.csv"
+            Path.cwd() / ".." / "data" / "strasbourg_entzheim.csv"
         ).resolve()
 
         self.__df = pd.read_csv(filepath_or_buffer=self.__file_path, sep=",")
@@ -51,6 +51,9 @@ class Signal:
         # durée d’ensoleillement (en minutes)
         self.tsun = self.__df["tsun"].to_numpy()
 
+        self.__path = Path.cwd() / ".." / "plot"
+        self.__path.mkdir(parents=True, exist_ok=True)
+
         self.__data = {
             "tavg": (self.tavg, "°C"),
             "tmin": (self.tmin, "°C"),
@@ -74,6 +77,7 @@ class Signal:
         styles: list[dict[str, Any]] | None = None,
         stem: bool = False,
         show_legend: bool = True,
+        save: bool = False,
     ) -> None:
         """
         Permet d'afficher le plot d'un ou plusieurs signal
@@ -87,6 +91,7 @@ class Signal:
             styles (list[dict[str, Any]] | None, optional): styles pour chaque série. Defaults to None.
             stem (bool, optional): si True, affiche un plot en tiges. Defaults to False.
             show_legend (bool, optional): affiche la légende. Defaults to True.
+            save (bool, optional): si True, sauvegarde le plot dans le dossier "plot". Defaults to False.
         """
         plt.figure(figsize=(10, 5))
 
@@ -109,7 +114,11 @@ class Signal:
         if show_legend:
             plt.legend()
 
-        plt.show()
+        if save:
+            plt.savefig(self.__path / f"{title.replace('/', '_')}.png", dpi=400)
+            plt.close()
+        else:
+            plt.show()
 
     def __check_data(self, donnée: str | tuple[str]) -> None:
         """
@@ -129,57 +138,6 @@ class Signal:
         else:
             if donnée not in self.__data:
                 raise ValueError(f"{donnée} n'est pas une donnée valide.")
-
-    def plot_signal(
-        self,
-        donnée: str | np.ndarray | tuple[str | np.ndarray],
-        start: int = 0,
-        end: int = 365,
-    ) -> None:
-        """
-        Génère le plot d'un ou plusieurs signal
-
-        Args:
-            donnée (str | tuple): Nom de la donnée ou tuple de noms de données à afficher.
-            start (int, optional): Index de départ. Defaults to 0.
-            end (int, optional): Index d'arrivée. Defaults to 365.
-
-        Raises:
-            ValueError: Si la donnée n'est pas valide.
-        """
-        if isinstance(donnée, tuple):
-            données = donnée
-        else:
-            données = (donnée,)
-
-        series = []
-        labels = []
-        for d in données:
-            if isinstance(d, np.ndarray):
-                valeurs = d
-                unité = "unité inconnue"
-                label = "Signal inconnu"
-            else:
-                self.__check_data(d)
-                valeurs, unité = self.__data[d]
-                label = f"Signal de {d} ({unité})"
-
-            x = np.asarray(valeurs[start:end], dtype=float)
-
-            moyenne = np.nanmean(x)
-            ecart_type = np.nanstd(x)
-            median = np.nanmedian(x)
-            minimum = np.nanmin(x)
-            maximum = np.nanmax(x)
-
-            print(
-                f"moyenne : {moyenne} / écart type : {ecart_type} / median : {median}/ min : {minimum} / max : {maximum}"
-            )
-
-            series.append((x, label))
-            labels.append(label)
-
-        self.__plot(series, "Temps (jours)", "Valeur", f"Signal de {', '.join(labels)}")
 
     def signal_data(
         self, donnée: str | np.ndarray, start: int = 0, end: int = 365
@@ -242,12 +200,74 @@ class Signal:
             len_x,
         )  # On retourne l'amplitude, la fréquence, l'unité, la phase du signal et la valeur moyenne du signal
 
+    def plot_signal(
+        self,
+        donnée: str | np.ndarray | tuple[str | np.ndarray],
+        start: int = 0,
+        end: int = 365,
+        save_plot: bool = False,
+    ) -> None:
+        """
+        Génère le plot d'un ou plusieurs signal
+
+        Args:
+            donnée (str | tuple): Nom de la donnée ou tuple de noms de données à afficher.
+            start (int, optional): Index de départ. Defaults to 0.
+            end (int, optional): Index d'arrivée. Defaults to 365.
+            save_plot (bool, optional): Si True, sauvegarde le plot dans le dossier "plot". Defaults to False.
+
+        Raises:
+            ValueError: Si la donnée n'est pas valide.
+        """
+        if isinstance(donnée, tuple):
+            données = donnée
+        else:
+            données = (donnée,)
+
+        series = []
+        labels = []
+        for d in données:
+            if isinstance(d, np.ndarray):
+                valeurs = d
+                unité = "unité inconnue"
+                label = "Signal inconnu"
+            else:
+                self.__check_data(d)
+                valeurs, unité = self.__data[d]
+                label = f"Signal de {d} ({unité})"
+
+            x = np.asarray(valeurs[start:end], dtype=float)
+
+            moyenne = np.nanmean(x)
+            ecart_type = np.nanstd(x)
+            median = np.nanmedian(x)
+            minimum = np.nanmin(x)
+            maximum = np.nanmax(x)
+
+            print(f"Moyenne du signal : {moyenne}")
+            print(f"Écart-type du signal : {ecart_type}")
+            print(f"Median du signal : {median}")
+            print(f"Minimum du signal : {minimum}")
+            print(f"Maximum du signal : {maximum}")
+
+            series.append((x, label))
+            labels.append(label)
+
+        self.__plot(
+            series,
+            "Temps (jours)",
+            "Valeur",
+            f"{', '.join(labels)}",
+            save=save_plot,
+        )
+
     def spectrum(
         self,
         donnée: str | np.ndarray,
         start: int = 0,
         end: int = 365,
         unilateral: bool = True,
+        save_plot: bool = False,
     ) -> None:
         """
         Génère le spectre d'un signal
@@ -256,12 +276,19 @@ class Signal:
             donnée (str | np.ndarray): Nom de la donnée à afficher ou tableau de données.
             start (int, optional): Index de départ. Defaults to 0.
             end (int, optional): Index d'arrivée. Defaults to 365.
+            unilateral (bool, optional): Si True, affiche le spectre unilatéral. Defaults to True.
+            save_plot (bool, optional): Si True, sauvegarde le plot dans le dossier "plot". Defaults to False.
 
         Raises:
             ValueError: Si la donnée n'est pas valide.
         """
 
         amp, fft_freq, unite, _, _, x, len_x = self.signal_data(donnée, start, end)
+
+        i = np.argmax(amp)
+
+        print(f"Période : {1 / fft_freq[i]}")
+        print(f"amplitude max : {amp[i]}")
 
         if not (unilateral):
             fft_freq = np.fft.fftshift(np.fft.fftfreq(len_x, d=1))
@@ -275,6 +302,7 @@ class Signal:
             x_values=fft_freq[: len(amp)],
             stem=True,
             show_legend=False,
+            save=save_plot,
         )
 
     def downsample(
@@ -285,6 +313,7 @@ class Signal:
         end: int = 365,
         plot: bool = True,
         antialias: bool = False,
+        save_plot: bool = False,
     ) -> np.ndarray:
         """
 
@@ -296,8 +325,8 @@ class Signal:
             start (int, optional): Index de départ.
             end (int, optional): Index d'arrivée.
             plot (bool, optional): Affiche le signal sous-échantillonné.
-            antialias (bool, optional): Applique un filtre passe-bas (moyenne glissante)
-                avant la décimation pour limiter le repliement spectral.
+            antialias (bool, optional): Applique un filtre passe-bas (moyenne glissante) avant la décimation pour limiter le repliement spectral.
+            save_plot (bool, optional): Si True, sauvegarde le plot dans le dossier "plot". Defaults to False.
 
         Returns:
             np.ndarray: Signal sous-échantillonné.
@@ -366,7 +395,15 @@ class Signal:
             plt.ylabel("Valeur")
             plt.grid()
             plt.legend()
-            plt.show()
+
+            if save_plot:
+                plt.savefig(
+                    self.__path
+                    / f"sous_échantillonnage_{factor}_{'antialiasing' if antialias else 'no_aliasing'}_{donnée}.png"
+                )
+                plt.close()
+            else:
+                plt.show()
 
         return resultat
 
@@ -376,8 +413,8 @@ class Signal:
         factor: int,
         start: int,
         end: int,
-        plot=True,
         antialias=False,
+        save_plot=False,
     ) -> None:
         """
         Affiche le spectre du signal original et du signal sous-échantillonné.
@@ -389,6 +426,7 @@ class Signal:
             end (int): Index d'arrivée.
             plot (bool, optional): Affiche le plot. Defaults to True.
             antialias (bool, optional): Applique un filtre passe-bas avant la décimation. Defaults to False.
+            save_plot (bool, optional): Si True, sauvegarde le plot dans le dossier "plot". Defaults to False.
         """
         if isinstance(data, np.ndarray):
             valeurs = data
@@ -403,7 +441,7 @@ class Signal:
             .to_numpy()
         )
 
-        y = self.downsample(data, factor, start, end, plot, antialias)
+        y = self.downsample(data, factor, start, end, plot=False, antialias=antialias)
 
         freq_original = np.fft.rfftfreq(len(x), d=1)
         spectre_original = np.abs(np.fft.rfft(x)) * 2 / len(x)
@@ -415,8 +453,21 @@ class Signal:
         frequence_max = freq_filtre[indice_max]
         amplitude_max = spectre_filtre[indice_max]
 
+        fe = 1 / factor
+        f_nyquist = fe / 2
+        f0 = freq_original[1:][np.argmax(spectre_original[1:])]
+
+        k = round(f0 / fe)
+        if k != 0:
+            f_al = abs(f0 - k * fe)
+            print(f"Repliment spectral : {1 / f_al}")
+
         print(f"Fréquence du pic maximal : {frequence_max:.6f} cycles/jour")
+        print(f"Période du pic maximal : {1 / frequence_max}")
         print(f"Amplitude maximale : {amplitude_max:.4f}")
+
+        print(f"F0 original du signal : {f0}")
+        print(f"Nyquist vérifié : {f_nyquist >= f0}")
 
         plt.plot(
             freq_original[1:],
@@ -424,6 +475,7 @@ class Signal:
             label="spectre original",
             color="#CF79DD",
         )
+
         plt.plot(
             freq_filtre[1:],
             spectre_filtre[1:],
@@ -436,7 +488,14 @@ class Signal:
         plt.ylabel("Amplitude")
         plt.grid()
         plt.legend()
-        plt.show()
+        if save_plot:
+            plt.savefig(
+                self.__path
+                / f"spectre_sous_ech_{factor}_{'antialiasing' if antialias else 'no_aliasing'}_{data}.png"
+            )
+            plt.close()
+        else:
+            plt.show()
 
     def reconstruct_signal(
         self,
@@ -445,6 +504,7 @@ class Signal:
         end: int = 365,
         n_harmonics: int = 10,
         plot: bool = False,
+        save_plot: bool = False,
     ) -> np.ndarray:
         """
         Reconstruit le signal à partir de ses `n` premières plus grandes harmoniques
@@ -502,12 +562,18 @@ class Signal:
                 "Valeur",
                 f"Signal reconstruit de {donnée} ({unite})",
                 styles=[{"alpha": 0.3, "color": "red"}, {"color": "black"}],
+                save=save_plot,
             )
 
         return signal
 
     def filter_signal(
-        self, donnée: str | np.ndarray, start: int = 0, end: int = 365, M: int = 7
+        self,
+        donnée: str | np.ndarray,
+        start: int = 0,
+        end: int = 365,
+        M: int = 7,
+        save_plot: bool = False,
     ) -> np.ndarray:
         """
         Filtre le signal à partir de ses n premières harmoniques
@@ -516,7 +582,8 @@ class Signal:
             donnée (str | np.ndarray): Nom de la donnée à filtrer ou tableau de données.
             start (int): Index de départ.
             end (int): Index d'arrivée.
-            M (int): Paramètre de filtrage.
+            M (int): Nombre de point de filtrage.
+            save_plot (bool, optional): Si True, sauvegarde le plot dans le dossier "plot". Defaults to False.
 
         Raises:
             ValueError: Si la donnée n'est pas valide.
@@ -573,12 +640,18 @@ class Signal:
             "Valeur",
             f"Signal filtré de {donnée}",
             styles=[{"alpha": 0.3, "color": "red"}, {"color": "black"}],
+            save=save_plot,
         )
 
         return y
 
     def plot_filtered_spectrum(
-        self, data: str | np.ndarray, start: int = 0, end=365, M: int = 10
+        self,
+        data: str | np.ndarray,
+        start: int = 0,
+        end=365,
+        M: int = 10,
+        save_plot: bool = False,
     ) -> None:
         """
         Affiche le plot du signal filtré
@@ -588,6 +661,7 @@ class Signal:
             start (int, optional): Index de départ. Defaults to 0.
             end (int, optional): Index d'arrivée. Defaults to 0.
             M (int, optional): Paramètre de filtrage. Defaults to 10.
+            save_plot (bool, optional): Si True, sauvegarde le plot dans le dossier "plot". Defaults to False.
         """
         if isinstance(data, np.ndarray):
             valeurs = data
@@ -600,7 +674,7 @@ class Signal:
             .interpolate(limit_direction="both")
             .to_numpy()
         )
-        y = self.filter_signal(data, start, end, M)
+        y = self.filter_signal(data, start, end, M, save_plot)
         freq = np.fft.rfftfreq(len(x), d=1)
 
         spectre_original = np.abs(np.fft.rfft(x)) * 2 / len(x)
@@ -616,10 +690,29 @@ class Signal:
             f"Comparaison des spectres de {data} ({unite})",
             x_values=freq[1:],
             styles=[{"color": "#CF79DD"}, {"color": "black"}],
+            save=save_plot,
         )
 
+    def correlation(self, data1: str, data2: str, start: int = 0, end: int = 365):
+
+        x = np.asarray(self.__data[data1][0][start:end], dtype=float)
+
+        y = np.asarray(self.__data[data2][0][start:end], dtype=float)
+
+        mask = np.isfinite(x) & np.isfinite(y)
+
+        correlation = np.corrcoef(x[mask], y[mask])[0, 1]
+
+        print(f"Corrélation entre {data1} et {data2} : {correlation}")
+
+        return float(correlation)
+
     def autocorrelate(
-        self, data: str | np.ndarray, start: int = 0, end: int = 365
+        self,
+        data: str | np.ndarray,
+        start: int = 0,
+        end: int = 365,
+        save_plot: bool = False,
     ) -> np.ndarray:
         """
         Génération de l'autocorrélation du signal
@@ -628,6 +721,7 @@ class Signal:
             data (str | np.ndarray): Nom de la donnée à autocorrélé ou tableau de données.
             start (int, optional): Index de départ. Defaults to 0.
             end (int, optional): Index d'arrivée. Defaults to 365.
+            save_plot (bool, optional): Si True, sauvegarde le plot dans le dossier "plot". Defaults to False.
 
         Raises:
             ValueError: Si la donnée n'est pas valide.
@@ -651,24 +745,117 @@ class Signal:
 
         n = len(x)
 
-        autocor = (
-            np.correlate(x, x, "full")[n - 1 :] / n
-        )  # Calcule de l'autocorrelation
+        autocor = np.correlate(x, x, "full")[n - 1 :]  # Calcule de l'autocorrelation
+
+        m = np.arange(n)
+
+        phi = autocor / (n - m)
+
+        phi = phi / phi[0]
+
+        hi = n // 4
+
+        m0 = np.argmax(phi < 0)
+
+        m1 = m0 + np.argmax(phi[m0:] >= 0)
+
+        m2 = m1 + np.argmax(phi[m1:] < 0)
+
+        m_pic = m1 + np.argmax(phi[m1:m2])
+
+        print(f"periode auto corr a partir de : {m_pic} à la valeur : {phi[m_pic]}")
 
         t = np.arange(n)
 
         self.__plot(
-            (autocor / autocor[0], f"Autocorrélation de {data}"),
+            (phi[:hi], f"Autocorrélation de {data}"),
             "Décalage m (jours)",
             "phi[m] / phi[0]",
             f"Autocorrélation de {data}",
-            x_values=t,
+            x_values=t[:hi],
             styles=[{"color": "black"}],
+            save=save_plot,
         )
 
         return autocor
 
+    def analyze(
+        self,
+        data: str,
+        start: int = 0,
+        end: int = 365,
+        M: int = 10,
+        factors: tuple[int, int] = (30, 250),
+        n_components: int = 10,
+    ) -> None:
+
+        self.plot_signal(data, start, end, save_plot=True)
+
+        print("-----------------------------------------------------")
+
+        self.spectrum(data, start, end, save_plot=True)
+
+        print("-----------------------------------------------------")
+
+        self.downsample(
+            data, factors[0], start, end, plot=True, antialias=True, save_plot=True
+        )
+
+        self.downsample(
+            data, factors[0], start, end, plot=True, antialias=False, save_plot=True
+        )
+
+        print("-----------------------------------------------------")
+
+        self.downsample(
+            data, factors[1], start, end, plot=True, antialias=True, save_plot=True
+        )
+
+        self.downsample(
+            data, factors[1], start, end, plot=True, antialias=False, save_plot=True
+        )
+
+        print("-----------------------------------------------------")
+
+        self.plot_filtered_down(
+            data, factors[0], start, end, antialias=True, save_plot=True
+        )
+
+        print("-----------------------------------------------------")
+
+        self.plot_filtered_down(
+            data, factors[0], start, end, antialias=False, save_plot=True
+        )
+
+        print("-----------------------------------------------------")
+
+        self.plot_filtered_down(
+            data, factors[1], start, end, antialias=True, save_plot=True
+        )
+
+        print("-----------------------------------------------------")
+
+        self.plot_filtered_down(
+            data, factors[1], start, end, antialias=False, save_plot=True
+        )
+
+        print("-----------------------------------------------------")
+
+        self.reconstruct_signal(
+            data, start, end, n_harmonics=n_components, plot=True, save_plot=True
+        )
+
+        print("-----------------------------------------------------")
+
+        self.plot_filtered_spectrum(data, start, end, M, save_plot=True)
+
+        print("-----------------------------------------------------")
+
+        self.autocorrelate(data, start, end, True)
+
+        print("-----------------------------------------------------")
+
 
 test = Signal()
-test.plot_signal("pres", len(test.tavg)-450, len(test.tavg)-250)
-test.plot_signal("pres", len(test.tavg)-250, len(test.tavg)-100)
+test.plot_signal("pres", len(test.tavg) - 450, len(test.tavg) - 250)
+test.plot_signal("pres", len(test.tavg) - 250, len(test.tavg) - 100)
