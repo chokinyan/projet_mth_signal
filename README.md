@@ -31,18 +31,18 @@ données fournies).
 
 Les variables exploitées par le code sont :
 
-| Colonne | Description | Unité |
-| ------- | ----------- | ----- |
-| `tavg` | Température moyenne | °C |
-| `tmin` | Température minimale | °C |
-| `tmax` | Température maximale | °C |
-| `prcp` | Précipitations | mm |
-| `snow` | Neige | mm |
-| `wdir` | Direction du vent | ° |
-| `wspd` | Vitesse du vent | km/h |
-| `wpgt` | Pic de rafale | km/h |
-| `pres` | Pression atmosphérique | hPa |
-| `tsun` | Durée d'ensoleillement | min |
+| Colonne  | Description             | Unité |
+| -------- | ----------------------- | ------ |
+| `tavg` | Température moyenne    | °C    |
+| `tmin` | Température minimale   | °C    |
+| `tmax` | Température maximale   | °C    |
+| `prcp` | Précipitations         | mm     |
+| `snow` | Neige                   | mm     |
+| `wdir` | Direction du vent       | °     |
+| `wspd` | Vitesse du vent         | km/h   |
+| `wpgt` | Pic de rafale           | km/h   |
+| `pres` | Pression atmosphérique | hPa    |
+| `tsun` | Durée d'ensoleillement | min    |
 
 Les valeurs manquantes sont gérées dans le code par interpolation linéaire avant
 les calculs FFT et les tracés.
@@ -59,13 +59,31 @@ Le fichier `src/main.py` contient la classe `Signal`, qui permet de :
 - sous-échantillonner un signal et analyser le répliement spectral ;
 - sauvegarder les figures dans le dossier `plot/` si demandé.
 
-Les méthodes principales sont :
+Les méthodes publiques de la classe `Signal` sont :
 
-- `signal_data(...)` : renvoie amplitude, fréquence, phase, moyenne et signal filtré ;
-- `plot_signal(...)` : trace un signal temporel ou plusieurs signaux comparés ;
-- `spectrum(...)` : affiche le spectre d'un signal ;
-- `downsample(...)` : applique un sous-échantillonnage avec option d'anti-repliement ;
-- `plot_filtered_down(...)` : compare le spectre du signal original et du signal décimé.
+- `signal_data(donnée, start=0, end=365)`  
+  Extrait une partie du signal, gère les valeurs manquantes et renvoie :
+  - `amp` : amplitudes du spectre ;
+  - `fft_freq` : fréquences associées ;
+  - `unite` : unité du signal ;
+  - `phase` : phase de la transformée de Fourier ;
+  - `moyenne` : moyenne du signal ;
+  - `x` : signal traité ;
+  - `len_x` : longueur du signal.
+
+- `plot_signal(donnée, start=0, end=365, save_plot=False)`  
+  Affiche un ou plusieurs signaux temporels. `donnée` peut être une chaîne comme `"tavg"` ou un tableau NumPy. Le paramètre `start` / `end` définit la fenêtre à tracer. `save_plot=True` enregistre la figure dans le dossier `plot/`.
+
+- `spectrum(donnée, start=0, end=365, unilateral=True, save_plot=False)`  
+  Calcule et affiche le spectre d'un signal à l'aide de la FFT. `unilateral=True` affiche le spectre unilatéral, `False` affiche le spectre complet.
+
+- `downsample(donnée, factor, start=0, end=365, plot=True, antialias=False, save_plot=False)`  
+  Sous-échantillonne le signal avec un facteur donné (`factor`). Si `antialias=True`, un lissage glissant est appliqué avant la décimation pour réduire le repliement spectral. La méthode retourne le signal décimé.
+
+- `spectrum_downsample(data, factor, start, end, antialias=False, save_plot=False)`  
+  Compare le spectre du signal original et du signal sous-échantillonné. Utile pour observer les effets du repliement spectral et valider le choix de `factor`.
+
+Les méthodes privées comme `__plot()` ou `__check_data()` ne sont pas destinées à être appelées directement ; elles servent au fonctionnement interne de la classe.
 
 ## Installation
 
@@ -74,28 +92,6 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirement.txt
 ```
-
-## Utilisation
-
-Exemple d'utilisation dans Python :
-
-```python
-from src.main import Signal
-
-s = Signal()
-
-# Tracé du signal de température moyenne
-s.plot_signal("tavg", start=0, end=365)
-
-# Spectre de la température moyenne
-s.spectrum("tavg", start=0, end=365)
-
-# Sous-échantillonnage avec facteur 4
-s.downsample("tavg", factor=4, start=0, end=365, plot=True)
-```
-
-Les figures peuvent être sauvegardées dans le dossier `plot/` en passant
-`save_plot=True` ou `save=True` selon la méthode utilisée.
 
 ## Remarques
 

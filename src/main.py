@@ -1,3 +1,10 @@
+"""
+Nom du Module : main.py
+Description: Notre fichier pour le projet de math signal sur les données de la station météorologique
+
+Créateurs : Saber LALAOUNA, Élio Benedetti, Maxence Sanchez, Louis Passerino 
+"""
+
 # %%
 from pathlib import Path
 
@@ -774,7 +781,7 @@ class Signal:
             save=save_plot,
         )
 
-        return autocor
+        return phi
 
     def analyze(
         self,
