@@ -16,7 +16,6 @@ class Signal:
 
         self.__file_path = (
             Path(__file__).parents[1].resolve()
-            / ".."
             / "data"
             / "strasbourg_entzheim.csv"
         ).resolve()
@@ -53,7 +52,7 @@ class Signal:
         # durée d’ensoleillement (en minutes)
         self.tsun = self.__df["tsun"].to_numpy()
 
-        self.__path = Path(__file__).parents[1].resolve() / ".." / "plot"
+        self.__path = Path(__file__).parents[1].resolve() / "plot"
         self.__path.mkdir(parents=True, exist_ok=True)
 
         self.__data = {
