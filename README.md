@@ -1,62 +1,104 @@
 # Projet Mathématiques et traitement du signal
 
-Ce projet explore des données météorologiques journalières de la station de
-Strasbourg-Entzheim à l'aide de Python, NumPy et Matplotlib. Les données sont
-chargées comme des signaux temporels, puis différentes grandeurs peuvent être
-visualisées sur une période donnée.
+Ce dépôt étudie des séries temporelles météorologiques issues de la station de
+Strasbourg-Entzheim. L'objectif est d'analyser et de visualiser différents
+signaux (température, précipitations, neige, vent, pression, ensoleillement),
+puis d'étudier leur spectre et leur sous-échantillonnage.
 
-## Contenu du dépôt
+## Structure du projet
 
 ```text
 .
 ├── data/
-│   └── strasbourg_entzheim.csv  # Données météorologiques journalières
+│   └── strasbourg_entzheim.csv        # Données météorologiques journalières
 ├── notebooks/
-│   └── main.ipynb               # Version interactive du projet
+│   └── main.ipynb                     # Version interactive du projet
+├── plot/                              # Graphiques générés automatiquement
 ├── src/
-│   └── main.py                  # Chargement des données et tracés
-├── projet.pdf                   # Document du projet
-└── requirement.txt              # Dépendances Python
+│   └── main.py                        # Implémentation du traitement des signaux
+├── .gitignore
+├── projet.pdf                         # Rapport / document du projet
+├── requirement.txt                    # Dépendances Python
+└── README.md
 ```
 
 ## Données utilisées
 
-Le fichier `data/strasbourg_entzheim.csv` contient des mesures journalières
-du 1er janvier 1950 au 31 décembre 2024. Les colonnes exploitées par le
-programme sont :
+Le fichier `data/strasbourg_entzheim.csv` contient des mesures quotidiennes de
+la station de Strasbourg-Entzheim, sur une période couvrant la plupart du XXe et
+XXIe siècle (en pratique du 1er janvier 1950 au 31 décembre 2024 selon les
+données fournies).
 
-| Colonne  | Description             | Unité  |
-| -------- | ----------------------- | ------- |
-| `tavg` | Température moyenne    | °C     |
-| `tmin` | Température minimale   | °C     |
-| `tmax` | Température maximale   | °C     |
-| `prcp` | Précipitations         | mm      |
-| `snow` | Neige                   | mm      |
-| `wdir` | Direction du vent       | ?       |
-| `wspd` | Vitesse du vent         | km/h    |
-| `wpgt` | Pic de rafale           | km/h    |
-| `pres` | Pression atmosphérique | hPa     |
-| `tsun` | Durée d'ensoleillement | minutes |
+Les variables exploitées par le code sont :
 
-Les valeurs manquantes sont remplacées par `0` lors du chargement avec
-`numpy.genfromtxt`.
+| Colonne | Description | Unité |
+| ------- | ----------- | ----- |
+| `tavg` | Température moyenne | °C |
+| `tmin` | Température minimale | °C |
+| `tmax` | Température maximale | °C |
+| `prcp` | Précipitations | mm |
+| `snow` | Neige | mm |
+| `wdir` | Direction du vent | ° |
+| `wspd` | Vitesse du vent | km/h |
+| `wpgt` | Pic de rafale | km/h |
+| `pres` | Pression atmosphérique | hPa |
+| `tsun` | Durée d'ensoleillement | min |
 
-## Fonctionnement
+Les valeurs manquantes sont gérées dans le code par interpolation linéaire avant
+les calculs FFT et les tracés.
 
-La classe `Data` de `src/main.py` :
+## Fonctionnalités du code
 
-1. charge le CSV ;
-2. extrait chaque grandeur météorologique dans un tableau NumPy ;
-3. fournit une méthode de visualisation pour chaque type de signal :
+Le fichier `src/main.py` contient la classe `Signal`, qui permet de :
 
-   - `plot_temp()` : températures minimale, moyenne et maximale ;
-   - `plot_snow()` : neige ;
-   - `plot_precipitation()` : précipitations ;
-   - `plot_wind_direction()` : direction du vent ;
-   - `plot_wind()` : vitesse du vent et pic de rafale ;
-   - `plot_pressure()` : pression atmosphérique ;
-   - `plot_temps_soleil()` : durée d'ensoleillement.
+- charger les données depuis le CSV ;
+- extraire chaque série météorologique dans un tableau NumPy ;
+- afficher un ou plusieurs signaux temporels ;
+- calculer les caractéristiques statistiques d'un signal ;
+- produire le spectre fréquentiel d'un signal via une transformée de Fourier ;
+- sous-échantillonner un signal et analyser le répliement spectral ;
+- sauvegarder les figures dans le dossier `plot/` si demandé.
 
-Les méthodes de tracé acceptent `start` et `end`. La longueur affichée est
-calculée comme `abs(start - end)` ; par défaut, les 356 premiers échantillons
-sont tracés.
+Les méthodes principales sont :
+
+- `signal_data(...)` : renvoie amplitude, fréquence, phase, moyenne et signal filtré ;
+- `plot_signal(...)` : trace un signal temporel ou plusieurs signaux comparés ;
+- `spectrum(...)` : affiche le spectre d'un signal ;
+- `downsample(...)` : applique un sous-échantillonnage avec option d'anti-repliement ;
+- `plot_filtered_down(...)` : compare le spectre du signal original et du signal décimé.
+
+## Installation
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirement.txt
+```
+
+## Utilisation
+
+Exemple d'utilisation dans Python :
+
+```python
+from src.main import Signal
+
+s = Signal()
+
+# Tracé du signal de température moyenne
+s.plot_signal("tavg", start=0, end=365)
+
+# Spectre de la température moyenne
+s.spectrum("tavg", start=0, end=365)
+
+# Sous-échantillonnage avec facteur 4
+s.downsample("tavg", factor=4, start=0, end=365, plot=True)
+```
+
+Les figures peuvent être sauvegardées dans le dossier `plot/` en passant
+`save_plot=True` ou `save=True` selon la méthode utilisée.
+
+## Remarques
+
+Ce projet est une application pédagogique de traitement du signal appliqué aux
+mesures météorologiques. Il s'appuie principalement sur `numpy`, `pandas` et
+`matplotlib` pour la manipulation numérique et la visualisation.

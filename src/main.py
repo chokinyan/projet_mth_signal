@@ -1,6 +1,5 @@
 # %%
 from pathlib import Path
-from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +15,10 @@ class Signal:
     def __init__(self) -> None:
 
         self.__file_path = (
-            Path.cwd() / ".." / "data" / "strasbourg_entzheim.csv"
+            Path(__file__).parents[1].resolve()
+            / ".."
+            / "data"
+            / "strasbourg_entzheim.csv"
         ).resolve()
 
         self.__df = pd.read_csv(filepath_or_buffer=self.__file_path, sep=",")
@@ -51,7 +53,7 @@ class Signal:
         # durée d’ensoleillement (en minutes)
         self.tsun = self.__df["tsun"].to_numpy()
 
-        self.__path = Path.cwd() / ".." / "plot"
+        self.__path = Path(__file__).parents[1].resolve() / ".." / "plot"
         self.__path.mkdir(parents=True, exist_ok=True)
 
         self.__data = {
@@ -74,7 +76,7 @@ class Signal:
         lab_y: str,
         title: str,
         x_values: np.ndarray | None = None,
-        styles: list[dict[str, Any]] | None = None,
+        styles=None,
         stem: bool = False,
         show_legend: bool = True,
         save: bool = False,
@@ -292,7 +294,7 @@ class Signal:
 
         if not (unilateral):
             fft_freq = np.fft.fftshift(np.fft.fftfreq(len_x, d=1))
-            amp = np.fft.fftshift(np.abs(np.fft.fft(x - x.mean())) / len_x)
+            amp = np.fft.fftshift(np.abs(np.fft.fft(x)) / len_x)
 
         self.__plot(
             (amp, f"Spectre de {donnée}"),
@@ -334,10 +336,6 @@ class Signal:
         Raises:
             ValueError: Si la donnée n'est pas valide ou si factor < 1.
         """
-
-        factor, start, end = int(factor), int(start), int(end)
-        if factor < 1:
-            raise ValueError("Le facteur doit être un entier >= 1.")
 
         fe = 1 / factor
         f_nyquist = fe / 2
@@ -407,7 +405,7 @@ class Signal:
 
         return resultat
 
-    def plot_filtered_down(
+    def spectrum_downsample(
         self,
         data: str | np.ndarray,
         factor: int,
@@ -817,25 +815,25 @@ class Signal:
 
         print("-----------------------------------------------------")
 
-        self.plot_filtered_down(
+        self.spectrum_downsample(
             data, factors[0], start, end, antialias=True, save_plot=True
         )
 
         print("-----------------------------------------------------")
 
-        self.plot_filtered_down(
+        self.spectrum_downsample(
             data, factors[0], start, end, antialias=False, save_plot=True
         )
 
         print("-----------------------------------------------------")
 
-        self.plot_filtered_down(
+        self.spectrum_downsample(
             data, factors[1], start, end, antialias=True, save_plot=True
         )
 
         print("-----------------------------------------------------")
 
-        self.plot_filtered_down(
+        self.spectrum_downsample(
             data, factors[1], start, end, antialias=False, save_plot=True
         )
 
@@ -856,6 +854,7 @@ class Signal:
         print("-----------------------------------------------------")
 
 
+# %%
 test = Signal()
 test.plot_signal("pres", len(test.tavg) - 450, len(test.tavg) - 250)
 test.plot_signal("pres", len(test.tavg) - 250, len(test.tavg) - 100)
